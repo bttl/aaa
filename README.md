@@ -5,6 +5,8 @@ Usage
 ---
 
 ```
+import {Workspace} from 'aaa';
+
 ReactDOM.render(
   React.createElement(Workspace, {
     sts: sts,
