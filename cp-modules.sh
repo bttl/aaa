@@ -16,9 +16,13 @@ mkdir -p $MBLD
 rsync \
 	-av \
 	--exclude=node_modules/ \
+    --exclude=.git/ \
+    --exclude=/out/ \
 	./ ${WEBD}/
 
 rsync \
 	-av \
 	--exclude=node_modules/ \
+    --exclude=.git/ \
+    --exclude=/out/ \
 	./ ${MBLD}/

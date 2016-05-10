@@ -1,6 +1,15 @@
 import React from 'react';
 
-export class MaterialItem extends React.Component{
+/**
+ * Material, like Text or Video
+ * @extends React.Component
+ */
+class MaterialItem extends React.Component{
+
+  /**
+   * Creates a new component
+   * @param {object} props Input data from a parent
+   */
   constructor(props){
     super(props);
     
@@ -30,27 +39,24 @@ export class MaterialItem extends React.Component{
       '&vk_id=' + this.props.vkId +
       '&auth_key=' + this.props.authKey;
   }
-  
-  handleClick() {
-    fetch(this.requestUrl)
-      .then((response) => {
-        return response.json();
-      }).then((json) => {
-        
-        var mtrl = this.props.row;
-        this.props.setCurrentText(mtrl.mname + '\n\n' + json.mcontent + '\n\n' + mtrl.create_date.substring(0, 10));
-      });
-  }
 
   render() {
+    var mtrl = this.props.row;
+    
     var btn = this.cmpBtn({
-      onClick: () => this.handleClick(),
+      onClick: () => this.props.selectItem(mtrl),
       style: this.styles.button,
       underlayColor: '#ccc'
-    }, this.props.row.mname);
+    }, mtrl.mname);
 
     return this.cmpView({
       style: this.styles.container
     }, btn);
   }
 }
+
+MaterialItem.propTypes = {
+  selectItem: React.PropTypes.func.isRequired
+};
+
+export default MaterialItem;

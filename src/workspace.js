@@ -1,20 +1,35 @@
 import React from 'react';
 
-import { MaterialItem } from './material-item';
+import MaterialItem from './material-item';
+import ActionMaterial from './actions/action-material';
+import StoreMaterialList from './stores/store-material-list';
+import StoreMaterialItem from './stores/store-material-item';
 
-export class Workspace extends React.Component {
+/** 
+* Workspace for a project
+*    contains a list of materials and selected material
+*/
+class Workspace extends React.Component {
   constructor(props) {
     super(props);
-    
-    this.state = {
-      arr: [],
-      loaded: false,
-      content: 'Выберите текст справа'
-    };
 
-    this.requestUrl =  this.props.apiHost + '/v1/material/get-list' +
-      '?vk_id=' + this.props.vkId +
-      '&auth_key=' + this.props.authKey;
+    // from root (one per application)
+    this.dspr = props.dspr;
+
+    // view -> action -> dspr
+    this.actionMaterial = new ActionMaterial(this.dspr);
+
+    // dspr -> store -> view
+    this.storeMaterialList = new StoreMaterialList(this.dspr);
+    this.storeMaterialItem = new StoreMaterialItem(this.dspr);
+    
+    // get this state from appStore
+    this.state = this._getStoreState();
+
+    // moved to actionMaterial
+    // this.requestUrl =  this.props.apiHost + '/v1/material/get-list' +
+    //   '?vk_id=' + this.props.vkId +
+    //   '&auth_key=' + this.props.authKey;
 
     var gHeight = 350;
     //var gWidth = 140;
@@ -52,48 +67,49 @@ export class Workspace extends React.Component {
   }
 
   componentDidMount() {
-    this.fetchData();
+    // listen changes inside appStore
+    // update a state after some changes occurs
+    this.storeMaterialList.addChangeListener(() => this._onChange());
+    this.storeMaterialItem.addChangeListener(() => this._onChange());
+
+    this.actionMaterial.receiveListByUser(this.props.apiHost,
+                                          this.props.vkId,
+                                          this.props.authKey);
   }
 
-  fetchData() {
-    fetch(this.requestUrl)
-      .then((response) => response.json())
-      .then((json) => {
-        if (json.errkey) {      
-          alert('Непредвиденная ошибка: ' + json.errkey + ': попробуйте позже');
-          return;
-        }
-        
-        this.setState({
-          arr: json,
-          loaded: true
-        });
-      })
-      .catch((ex) => {
-        console.warn('fetch error', ex);
-        alert('Непредвиденная ошибка: fetch error: попробуйте позже');
-      });
-      //.done();
+  componentWillUnmount() {
+    this.storeMaterialList.removeChangeListener(() => this._onChange());
+    this.storeMaterialItem.removeChangeListener(() => this._onChange());
+  }
+  
+  /**
+   * Event handler for 'change' events coming from the TodoStore
+   */
+  _onChange() {    
+    var storeState =  this._getStoreState();
+    console.log('_onChange', storeState);
+    this.setState(storeState);
   }
 
-  handleText(content) {
-    //    var arrNew = this.state.arr.slice();
-    
-    // arrNew.push({
-    //   mname: 'hello',
-    //   id: 2345
-    // });
-    
-    this.setState({
-      content: content      
-    });
+  /**
+   * State contains only required props of objects
+   *     no full objects - just props,
+   *     like content of a selected material
+   */
+  _getStoreState() {
+    return {
+      arr: this.storeMaterialList.getList(),
+      loaded: this.storeMaterialList.checkLoaded(),
+      content: this.storeMaterialItem.getCurrentText(),
+      itemProgress: this.storeMaterialItem.checkProgress()
+    };
   }
 
   render() {
     if (!this.state.loaded) {
       return this.cmpView({
         style: this.styles.container
-      }, this.cmpText(null, 'Loading...'));
+      }, this.cmpText(null, 'загрузка...'));
     }
 
     var list = this.cmpLister({
@@ -107,7 +123,11 @@ export class Workspace extends React.Component {
           authKey: this.props.authKey,
           cmp: this.props.cmp,
           sts: this.props.sts,
-          setCurrentText: (content) => this.handleText(content)
+          selectItem: (item) => this.actionMaterial.receiveMaterialItem(
+            this.props.apiHost,
+            this.props.vkId,
+            this.props.authKey,
+            item)
         });
       }
     });
@@ -116,10 +136,12 @@ export class Workspace extends React.Component {
       style: this.styles.listWrap
     }, list);
 
+    var text = this.cmpText(null, this.state.itemProgress ? '...' : this.state.content);
+
     var textWrap = this.cmpScroller({
       style: this.styles.textWrap
-    }, this.cmpText(null, this.state.content));
-
+    }, text);
+    
     return this.cmpView({
       style: this.styles.container
     }, textWrap, listWrap);
@@ -131,5 +153,8 @@ Workspace.propTypes = {
   authKey: React.PropTypes.string.isRequired,
   apiHost: React.PropTypes.string.isRequired,
   cmp: React.PropTypes.object.isRequired,
-  sts: React.PropTypes.object.isRequired
+  sts: React.PropTypes.object.isRequired,
+  dspr: React.PropTypes.object.isRequired
 };
+
+export default Workspace;

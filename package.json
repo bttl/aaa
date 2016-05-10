@@ -2,7 +2,7 @@
   "name": "aaa",
   "version": "0.1.0",
   "description": "",
-  "main": "index.js",
+  "main": "./dist/workspace.js",
   "scripts": {
     "build": "babel -d dist src"
   },
